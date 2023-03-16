@@ -17,10 +17,31 @@ Builder.load_file('.\gui.kv')
 class MainScreen(Screen):
     def __init__(self, **kw):
         super().__init__(**kw)
-        self.all_columns = []
+        self.all_labels = []
+        self.all_checkboxes = []
+        self.all_buttons = []
+
+
+    def edit_row(self, instance):
+        print('click')
         
 
     def get_search_results_from_database(self):
+        
+        for label in self.all_labels:
+            self.ids.search_result_id.remove_widget(label)
+
+        for checkbox in self.all_checkboxes:
+            self.ids.search_result_id.remove_widget(checkbox)
+
+        for button in self.all_buttons:
+            self.ids.search_result_id.remove_widget(button)
+
+        self.all_labels.clear()
+        self.all_checkboxes.clear()
+        self.all_buttons.clear()
+
+
         print(self.ids.search_field_id.text)
         try:
             sqlite_connection = sqlite3.connect('.\programs.db')
@@ -30,31 +51,25 @@ class MainScreen(Screen):
             else:
                 cursor.execute('SELECT * FROM ProgramManager3000 WHERE name LIKE "%' + self.ids.search_field_id.text + '%"')
             data_returned_from_query = cursor.fetchall()
+
             for tuple in data_returned_from_query:
-                self.ids.search_result_id.add_widget(Label(text = str(tuple[0]), font_size = '15sp', shorten = True, text_size = (60,30)))
-                self.ids.search_result_id.add_widget(Label(text = str(tuple[1]), font_size = '15sp', shorten = True, text_size = (60,30)))
-                self.ids.search_result_id.add_widget(Label(text = str(tuple[2]), font_size = '15sp', shorten = True, text_size = (60,30)))
-                self.ids.search_result_id.add_widget(Label(text = str(tuple[3]), font_size = '15sp', shorten = True, text_size = (60,30)))
-                self.ids.search_result_id.add_widget(Label(text = str(tuple[4]), font_size = '15sp', shorten = True, text_size = (60,30)))
-                self.ids.search_result_id.add_widget(Label(text = str(tuple[5]), font_size = '15sp', shorten = True, text_size = (60,30)))
-                self.ids.search_result_id.add_widget(CheckBox())
-                self.ids.search_result_id.add_widget(Button(text = 'Edit row!'))
+                label = Label(text = str(tuple[0]) + str(tuple[1]) + str(tuple[2]) + str(tuple[3]) + str(tuple[4]),
+                               font_size = '15sp', text_size = (600, 50), size_hint_x = 0.8)
+                checkbox = CheckBox(size_hint_x = 0.1)
+                button = Button(text = 'Edit row!', size_hint_x = 0.1, on_press = self.edit_row)
+
+                self.all_labels.append(label)
+                self.all_checkboxes.append(checkbox)
+                self.all_buttons.append(button)
+
+                self.ids.search_result_id.add_widget(label)
+                self.ids.search_result_id.add_widget(checkbox)
+                self.ids.search_result_id.add_widget(button)
             cursor.close()
 
         except sqlite3.Error as error:
             print('Error during database communication. ', error)
 
-
-
-    def add_row(self):
-        self.ids.search_result_id.add_widget(Label(text = 'labvvvsvsdvdgdydfthyfthftyftyftyvvvelh', font_size = '20sp', shorten = True, text_size = (60,30)))
-        self.ids.search_result_id.add_widget(Label(text = 'label', font_size = '20sp'))
-        self.ids.search_result_id.add_widget(Label(text = 'label', font_size = '20sp'))
-        self.ids.search_result_id.add_widget(Label(text = 'label', font_size = '20sp'))
-        self.ids.search_result_id.add_widget(Label(text = 'label', font_size = '20sp'))
-
-        self.ids.search_result_id.add_widget(CheckBox())
-        self.ids.search_result_id.add_widget(Button(text = 'Edit row!'))
 class SettingsScreen(Screen):
     pass
 

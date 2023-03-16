@@ -31,7 +31,7 @@
             do_scroll_x: False
             bar_width: 20
             GridLayout:
-                cols: 8
+                cols: 3
                 row_default_height: 40
                 padding: 0,70,0,0
                 id: search_result_id
@@ -39,21 +39,14 @@
                 height: self.minimum_height
                 spacing: 10
                 Label:
-                    text: 'id'
-                Label:
-                    text: 'name'
-                Label:
-                    text: 'url'
-                Label:
-                    text: 'install_command'
-                Label:
-                    text: 'downloaded'
-                Label:
-                    text: 'installed'
+                    text: 'Program'
+                    size_hint_x: 0.9
                 Label:
                     text: ''
+                    size_hint_x: 0.05
                 Label:
                     text: ''
+                    size_hint_x: 0.05
 
 
                 
