@@ -5,7 +5,7 @@
         orientation: 'vertical'
         GridLayout:
             rows: 1
-            cols: 4
+            cols: 5
             size_hint_y: None
             Button:
                 text: 'Settings'
@@ -26,6 +26,11 @@
                 on_press: root.get_search_results_from_database()
             Button:
                 text: 'Download selected'
+            Button:
+                text: 'Add'
+                size_hint_x: None
+                width: 100
+                on_press: root.add_new_program()
         ScrollView:
             do_scroll_y: True
             do_scroll_x: False
@@ -49,7 +54,25 @@
                     size_hint_x: 0.05
 
 
-                
+<PopupWindowEdit>:
+    GridLayout:
+        rows: 2
+        TextInput:
+            id: textinput_id
+        Button:
+            text: 'Save changes'
+            size_hint_y: 0.3
+            on_press: root.save_changes_to_database()
+
+<PopupWindowAdd>:
+    GridLayout:
+        rows: 2
+        TextInput:
+            id: textinput_id
+        Button:
+            text: 'Save changes'
+            size_hint_y: 0.3
+            on_press: root.save_changes_to_database()
 
 
 
