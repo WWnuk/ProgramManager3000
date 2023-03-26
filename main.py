@@ -1,5 +1,6 @@
 #:kivy 2.1.0
 
+from kivy.core.window import Window
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -15,6 +16,10 @@ import sqlite3
 import yaml
 from yaml.loader import SafeLoader
 from functools import partial
+
+Window.size = (1000, 600)
+
+
 
 
 
@@ -36,15 +41,32 @@ Builder.load_file('.\gui.kv')
 class PopupWindowAdd(Popup):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.ids.textinput_id.text = """
-        name:Name of a program
-        url:URL link to program
-        install_command:Program will be installed using this command
-        """
+        self.yaml_formatted = {'name': 'Name of a program',
+                               'url':'URL link to program',
+                               'install_command':'Program will be installed using this command'}
+        self.converted_to_yaml = yaml.dump(self.yaml_formatted, sort_keys=False)
+        self.ids.textinput_id.text = self.converted_to_yaml
 
-
-
-
+    def save_changes_to_database(self):
+        try:
+            self.edited_text_in_yaml = yaml.load(self.ids.textinput_id.text, Loader=SafeLoader)
+            print(type(self.edited_text_in_yaml))
+            print(self.edited_text_in_yaml)
+            sqlite_connection = sqlite3.connect('.\programs.db')
+            cursor = sqlite_connection.cursor()
+            cursor.execute("""INSERT INTO ProgramManager3000(name,url,install_command,downloaded,installed) VALUES(?,?,?,0,0)""",
+                         (self.edited_text_in_yaml['name'], self.edited_text_in_yaml['url'], self.edited_text_in_yaml['install_command']))
+            sqlite_connection.commit()
+            cursor.close()
+        except yaml.YAMLError as error:
+            error_popup = Popup(size_hint=(None, None), size=(800, 400), title = 'Error', content = Label(text = 'Error in YAML syntax. Changes are not saved to database.'))
+            error_popup.open()
+        except KeyError as error:
+            error_popup = Popup(size_hint=(None, None), size=(800, 400), title = 'Error', content = Label(text = 'You modifed KEY. Please don`t do that.'))
+            error_popup.open()
+        except sqlite3.Error as error:
+            error_popup = Popup(size_hint=(None, None), size=(800, 400), title = 'Error', content = Label(text = str(error)))
+            error_popup.open()
 
 
 
