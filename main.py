@@ -16,8 +16,10 @@ import sqlite3
 import yaml
 from yaml.loader import SafeLoader
 from functools import partial
+import requests
+import os
 
-Window.size = (1000, 600)
+Window.size = (1500, 600)
 
 
 
@@ -31,7 +33,10 @@ class InvalidDownloadedValueException(Exception):
             super().__init__("You can`t modify 'downloaded' value!")
 class InvalidInstalledValueException(Exception):
     def __init__(self):
-            super().__init__("You can`t modify 'installed' value!")      
+            super().__init__("You can`t modify 'installed' value!")  
+class InvalidURLException(Exception):
+    def __init__(self):
+            super().__init__("Operation failed. Something is wrong with URL")        
 
 
 
@@ -43,7 +48,8 @@ class PopupWindowAdd(Popup):
         super().__init__(**kwargs)
         self.yaml_formatted = {'name': 'Name of a program',
                                'url':'URL link to program',
-                               'install_command':'Program will be installed using this command'}
+                               'install_command':'Program will be installed using this command',
+                               'check_presence_command':'Presence will be detected using this command'}
         self.converted_to_yaml = yaml.dump(self.yaml_formatted, sort_keys=False)
         self.ids.textinput_id.text = self.converted_to_yaml
 
@@ -52,10 +58,10 @@ class PopupWindowAdd(Popup):
             self.edited_text_in_yaml = yaml.load(self.ids.textinput_id.text, Loader=SafeLoader)
             print(type(self.edited_text_in_yaml))
             print(self.edited_text_in_yaml)
-            sqlite_connection = sqlite3.connect('.\programs.db')
+            sqlite_connection = sqlite3.connect('C:\\projects\\ProgramManager3000\\programs.db')
             cursor = sqlite_connection.cursor()
-            cursor.execute("""INSERT INTO ProgramManager3000(name,url,install_command,downloaded,installed) VALUES(?,?,?,0,0)""",
-                         (self.edited_text_in_yaml['name'], self.edited_text_in_yaml['url'], self.edited_text_in_yaml['install_command']))
+            cursor.execute("""INSERT INTO ProgramManager3000(name,url,install_command,check_presence_command,installed) VALUES(?,?,?,?,0)""",
+                         (self.edited_text_in_yaml['name'], self.edited_text_in_yaml['url'], self.edited_text_in_yaml['install_command'], self.edited_text_in_yaml['check_presence_command']))
             sqlite_connection.commit()
             cursor.close()
         except yaml.YAMLError as error:
@@ -84,17 +90,14 @@ class PopupWindowEdit(Popup):
             if self.edited_text_in_yaml['id'] != self.orginal_text_in_yaml['id']:
                 raise InvalidIdValueException()
 
-            if self.edited_text_in_yaml['downloaded'] != self.orginal_text_in_yaml['downloaded']:
-                raise InvalidDownloadedValueException()
-
             if self.edited_text_in_yaml['installed'] != self.orginal_text_in_yaml['installed']:
                 raise InvalidInstalledValueException()
 
-            sqlite_connection = sqlite3.connect('.\programs.db')
+            sqlite_connection = sqlite3.connect('C:\\projects\\ProgramManager3000\\programs.db')
             cursor = sqlite_connection.cursor()
-            cursor.execute("""UPDATE ProgramManager3000 SET name=?,url=?,install_command=?,downloaded=?,installed=? WHERE id=?""",
+            cursor.execute("""UPDATE ProgramManager3000 SET name=?,url=?,install_command=?,check_presence_command=?,installed=? WHERE id=?""",
                          (self.edited_text_in_yaml['name'], self.edited_text_in_yaml['url'], self.edited_text_in_yaml['install_command'],
-                             self.edited_text_in_yaml['downloaded'], self.edited_text_in_yaml['installed'], self.edited_text_in_yaml['id']))
+                             self.edited_text_in_yaml['check_presence_command'], self.edited_text_in_yaml['installed'], self.edited_text_in_yaml['id']))
             sqlite_connection.commit()
             cursor.close()
             
@@ -126,15 +129,83 @@ class MainScreen(Screen):
     def __init__(self, **kw):
         super().__init__(**kw)
 
+    def remove_program_entry(self):
+        try:
+            to_be_removed = []
+            for i in range(len(self.all_checkboxes)):
+                if self.all_checkboxes[i].active:
+                    text_in_yaml = yaml.load(self.all_textinputs[i].text, Loader = SafeLoader)
+                    to_be_removed.append(text_in_yaml)
+
+            sqlite_connection = sqlite3.connect('C:\\projects\\ProgramManager3000\\programs.db')
+            cursor = sqlite_connection.cursor()
+            for entry in to_be_removed:
+                cursor.execute("""DELETE FROM ProgramManager3000 WHERE id=?""", (entry['id'],))
+            sqlite_connection.commit()
+            cursor.close()
+            self.get_search_results_from_database()
+        except sqlite3.Error as error:
+            error_popup = Popup(size_hint=(None, None), size=(800, 400), title = 'Error', content = Label(text = str(error)))
+            error_popup.open()
+
+
+
+
+
+
+
+    def install_selected(self):
+        try:
+            to_be_installed = []
+            for i in range(len(self.all_checkboxes)):
+                if self.all_checkboxes[i].active:
+                    #print("This label is checked: ", self.all_textinputs[i].text)
+                    text_in_yaml = yaml.load(self.all_textinputs[i].text, Loader = SafeLoader)
+                    to_be_installed.append(text_in_yaml)
+            for program in to_be_installed:
+                print(program['name'])
+                print(program['url'])
+                url = program['url']
+                if url.find('/') != -1:
+                    name_from_url = url.rsplit('/', 1)[1]
+                    save_path = 'C:\\projects\\ProgramManager3000\\downloads\\' + name_from_url
+                    response = requests.get(url, allow_redirects=True)
+                    data_type = response.headers.get('content-type')
+                    print(data_type)
+                    if data_type != 'application/x-msi' and data_type != 'application/octet-stream':
+                        raise InvalidURLException()
+                        
+                    open(save_path, 'wb').write(response.content)
+                    status = os.system(program['install_command'])
+                    print(status)
+
+
+                else:
+                    raise InvalidURLException
+               
+        except InvalidURLException as error:
+                error_popup = Popup(size_hint=(None, None), size=(800, 400), title = 'Error', content = Label(text = "Operation failed. Something is wrong with URL"))
+                error_popup.open()
+
+
     def edit_row(self, *args, **kwargs):
         print(kwargs['row_id'])
-        popup = PopupWindowEdit(kwargs['row_id'], size_hint=(None, None), size=(800, 400), title = 'Edit row in YAML')
+        popup = PopupWindowEdit(kwargs['row_id'], size_hint=(None, None), size=(1000, 400), title = 'Edit row in YAML')
         popup.open()
 
 
     def add_new_program(self):
-        popup = PopupWindowAdd(size_hint=(None, None), size=(800, 400), title = 'Add new program')
+        popup = PopupWindowAdd(size_hint=(None, None), size=(1000, 400), title = 'Add new program')
         popup.open()
+
+
+
+    def check_program_exist(self, path_to_file):
+        if os.path.isfile(path_to_file):
+            return 1
+        else:
+            return 0
+
 
 
     def get_search_results_from_database(self):
@@ -152,10 +223,8 @@ class MainScreen(Screen):
         self.all_checkboxes.clear()
         self.all_buttons.clear()
 
-
-        print(self.ids.search_field_id.text)
         try:
-            sqlite_connection = sqlite3.connect('.\programs.db')
+            sqlite_connection = sqlite3.connect('C:\\projects\\ProgramManager3000\\programs.db')
             cursor = sqlite_connection.cursor()
             if self.ids.search_field_id.text == '':
                cursor.execute('SELECT * FROM ProgramManager3000')
@@ -173,10 +242,17 @@ class MainScreen(Screen):
                                   column_names[5]: column_data[5]}
                 converted_to_yaml = yaml.dump(yaml_formatted, sort_keys = False)
                 rid= data_returned_from_query.index(column_data)
+                converted_to_yaml_dict = yaml.load(converted_to_yaml, Loader=SafeLoader)
+                print(self.check_program_exist(converted_to_yaml_dict['check_presence_command']))
 
-
-
-                textinput = Label(font_size = '15sp', size_hint_x = 0.8, text = converted_to_yaml, text_size = (600, None))
+                if self.check_program_exist(converted_to_yaml_dict['check_presence_command']) == 1:
+                    cursor.execute("""UPDATE ProgramManager3000 SET installed=? WHERE id=?""", (1,converted_to_yaml_dict['id']))
+                    sqlite_connection.commit()
+                else:
+                    cursor.execute("""UPDATE ProgramManager3000 SET installed=? WHERE id=?""", (0,converted_to_yaml_dict['id']))
+                    sqlite_connection.commit()
+                                
+                textinput = Label(font_size = '15sp', size_hint_x = 0.8, text = converted_to_yaml, text_size = (1000, None))
                 checkbox = CheckBox(size_hint_x = 0.1)
                 button_in_box_layout = BoxLayout(orientation = 'vertical', size_hint_x = 0.1)
                 button_in_box_layout.add_widget(Label(text = ''))
@@ -205,7 +281,6 @@ class TestApp(App):
 
     def build(self):
         # Create the screen manager
-
         sm = ScreenManager()
         sm.add_widget(MainScreen(name='main'))
         sm.add_widget(SettingsScreen(name='settings'))

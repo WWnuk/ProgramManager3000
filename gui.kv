@@ -5,13 +5,12 @@
         orientation: 'vertical'
         GridLayout:
             rows: 1
-            cols: 5
+            cols: 7
             size_hint_y: None
             Button:
                 text: 'Settings'
                 on_press: root.manager.current = 'settings'
-                size_hint_x: None
-                width: 100
+                size_hint_x: 0.1
             TextInput:
                 id: search_field_id
                 multiline: False
@@ -19,18 +18,28 @@
                 hint_text: 'Enter program name!'
                 padding_y: 40
                 padding_x: 50
+                size_hint_x: None
+                width: 400
             Button:
                 text: 'Search'
-                size_hint_x: None
-                width: 100
+                size_hint_x: 0.1
                 on_press: root.get_search_results_from_database()
             Button:
-                text: 'Download selected'
+                text: 'Install selected'
+                on_press: root.install_selected()
+                size_hint_x: 0.2
             Button:
-                text: 'Add'
-                size_hint_x: None
-                width: 100
+                text: 'Uninstall selected'
+                on_press: root.uninstall_selected()
+                size_hint_x: 0.2
+            Button:
+                text: 'Add entry'
+                size_hint_x: 0.2
                 on_press: root.add_new_program()
+            Button:
+                text: 'Remove selected entry'
+                size_hint_x: 0.2
+                on_press: root.remove_program_entry()
         ScrollView:
             do_scroll_y: True
             do_scroll_x: False
@@ -45,7 +54,6 @@
                 spacing: 10
                 Label:
                     markup: True
-                    text: '[b]Program entry[/b]'
                     font_size: '20sp'
                     size_hint_x: 0.9
                 Label:
