@@ -5,12 +5,12 @@
         orientation: 'vertical'
         GridLayout:
             rows: 1
-            cols: 7
+            cols: 6
             size_hint_y: None
-            Button:
-                text: 'Settings'
-                on_press: root.manager.current = 'settings'
-                size_hint_x: 0.1
+            # Button:
+            #     text: 'Show history'
+            #     on_press: root.manager.current = 'history'
+            #     size_hint_x: 0.1
             TextInput:
                 id: search_field_id
                 multiline: False
@@ -29,10 +29,6 @@
                 on_press: root.install_selected()
                 size_hint_x: 0.2
             Button:
-                text: 'Uninstall selected'
-                on_press: root.uninstall_selected()
-                size_hint_x: 0.2
-            Button:
                 text: 'Add entry'
                 size_hint_x: 0.2
                 on_press: root.add_new_program()
@@ -45,7 +41,7 @@
             do_scroll_x: False
             bar_width: 20
             GridLayout:
-                cols: 3
+                cols: 4
                 row_default_height: 200
                 padding: 0,70,0,0
                 id: search_result_id
@@ -53,15 +49,18 @@
                 height: self.minimum_height
                 spacing: 10
                 Label:
+                    text: ''
+                    size_hint_x: 0.05
+                Label:
                     markup: True
                     font_size: '20sp'
-                    size_hint_x: 0.9
+                    size_hint_x: 0.75
                 Label:
                     text: ''
                     size_hint_x: 0.05
                 Label:
                     text: ''
-                    size_hint_x: 0.05
+                    size_hint_x: 0.15
 
 
 <PopupWindowEdit>:
@@ -89,10 +88,10 @@
 
             
 
-<SettingsScreen>:
+<HistoryScreen>:
     BoxLayout:
         Button:
-            text: 'My settings button'
+            text: 'History'
         Button:
-            text: 'Back to main'
+            text: 'Back'
             on_press: root.manager.current = 'main'

@@ -1,4 +1,0 @@
-1. GUI created using Kivy 
-2. User can add URL link that points to exe file to database
-3. Each row have URL link, program name and installation command columns
-4. User can mark which program to download and install

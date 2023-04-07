@@ -11,6 +11,7 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.textinput import TextInput
 from kivy.uix.checkbox import CheckBox
+from kivy.uix.image import Image
 from kivy.properties import NumericProperty
 import sqlite3
 import yaml
@@ -21,8 +22,11 @@ import os
 
 Window.size = (1500, 600)
 
-
-
+dirname = os.path.dirname(__file__)
+red_dot_path = os.path.join(dirname, 'images\\red_dot.png')
+green_dot_path = os.path.join(dirname, 'images\\green_dot.png')
+database_path = os.path.join(dirname, 'programs.db')
+downloads_path = os.path.join(dirname, 'downloads\\')
 
 
 class InvalidIdValueException(Exception):
@@ -49,7 +53,7 @@ class PopupWindowAdd(Popup):
         self.yaml_formatted = {'name': 'Name of a program',
                                'url':'URL link to program',
                                'install_command':'Program will be installed using this command',
-                               'check_presence_command':'Presence will be detected using this command'}
+                               'check_presence_path':'Presence will be indicated whether or not this file exist'}
         self.converted_to_yaml = yaml.dump(self.yaml_formatted, sort_keys=False)
         self.ids.textinput_id.text = self.converted_to_yaml
 
@@ -58,10 +62,10 @@ class PopupWindowAdd(Popup):
             self.edited_text_in_yaml = yaml.load(self.ids.textinput_id.text, Loader=SafeLoader)
             print(type(self.edited_text_in_yaml))
             print(self.edited_text_in_yaml)
-            sqlite_connection = sqlite3.connect('C:\\projects\\ProgramManager3000\\programs.db')
+            sqlite_connection = sqlite3.connect(database_path)
             cursor = sqlite_connection.cursor()
-            cursor.execute("""INSERT INTO ProgramManager3000(name,url,install_command,check_presence_command,installed) VALUES(?,?,?,?,0)""",
-                         (self.edited_text_in_yaml['name'], self.edited_text_in_yaml['url'], self.edited_text_in_yaml['install_command'], self.edited_text_in_yaml['check_presence_command']))
+            cursor.execute("""INSERT INTO ProgramManager3000(name,url,install_command,check_presence_path,installed) VALUES(?,?,?,?,0)""",
+                         (self.edited_text_in_yaml['name'], self.edited_text_in_yaml['url'], self.edited_text_in_yaml['install_command'], self.edited_text_in_yaml['check_presence_path']))
             sqlite_connection.commit()
             cursor.close()
         except yaml.YAMLError as error:
@@ -93,11 +97,11 @@ class PopupWindowEdit(Popup):
             if self.edited_text_in_yaml['installed'] != self.orginal_text_in_yaml['installed']:
                 raise InvalidInstalledValueException()
 
-            sqlite_connection = sqlite3.connect('C:\\projects\\ProgramManager3000\\programs.db')
+            sqlite_connection = sqlite3.connect(database_path)
             cursor = sqlite_connection.cursor()
-            cursor.execute("""UPDATE ProgramManager3000 SET name=?,url=?,install_command=?,check_presence_command=?,installed=? WHERE id=?""",
+            cursor.execute("""UPDATE ProgramManager3000 SET name=?,url=?,install_command=?,check_presence_path=?,installed=? WHERE id=?""",
                          (self.edited_text_in_yaml['name'], self.edited_text_in_yaml['url'], self.edited_text_in_yaml['install_command'],
-                             self.edited_text_in_yaml['check_presence_command'], self.edited_text_in_yaml['installed'], self.edited_text_in_yaml['id']))
+                             self.edited_text_in_yaml['check_presence_path'], self.edited_text_in_yaml['installed'], self.edited_text_in_yaml['id']))
             sqlite_connection.commit()
             cursor.close()
             
@@ -126,6 +130,7 @@ class MainScreen(Screen):
     all_textinputs = []
     all_checkboxes = []
     all_buttons = []
+    all_icons = []
     def __init__(self, **kw):
         super().__init__(**kw)
 
@@ -137,7 +142,7 @@ class MainScreen(Screen):
                     text_in_yaml = yaml.load(self.all_textinputs[i].text, Loader = SafeLoader)
                     to_be_removed.append(text_in_yaml)
 
-            sqlite_connection = sqlite3.connect('C:\\projects\\ProgramManager3000\\programs.db')
+            sqlite_connection = sqlite3.connect(database_path)
             cursor = sqlite_connection.cursor()
             for entry in to_be_removed:
                 cursor.execute("""DELETE FROM ProgramManager3000 WHERE id=?""", (entry['id'],))
@@ -168,7 +173,7 @@ class MainScreen(Screen):
                 url = program['url']
                 if url.find('/') != -1:
                     name_from_url = url.rsplit('/', 1)[1]
-                    save_path = 'C:\\projects\\ProgramManager3000\\downloads\\' + name_from_url
+                    save_path = downloads_path + name_from_url
                     response = requests.get(url, allow_redirects=True)
                     data_type = response.headers.get('content-type')
                     print(data_type)
@@ -210,6 +215,9 @@ class MainScreen(Screen):
 
     def get_search_results_from_database(self):
         
+        for icon in self.all_icons:
+            self.ids.search_result_id.remove_widget(icon)
+
         for textinput in self.all_textinputs:
             self.ids.search_result_id.remove_widget(textinput)
 
@@ -218,13 +226,14 @@ class MainScreen(Screen):
 
         for button in self.all_buttons:
             self.ids.search_result_id.remove_widget(button)
-
+        
+        self.all_icons.clear()
         self.all_textinputs.clear()
         self.all_checkboxes.clear()
         self.all_buttons.clear()
 
         try:
-            sqlite_connection = sqlite3.connect('C:\\projects\\ProgramManager3000\\programs.db')
+            sqlite_connection = sqlite3.connect(database_path)
             cursor = sqlite_connection.cursor()
             if self.ids.search_field_id.text == '':
                cursor.execute('SELECT * FROM ProgramManager3000')
@@ -243,27 +252,29 @@ class MainScreen(Screen):
                 converted_to_yaml = yaml.dump(yaml_formatted, sort_keys = False)
                 rid= data_returned_from_query.index(column_data)
                 converted_to_yaml_dict = yaml.load(converted_to_yaml, Loader=SafeLoader)
-                print(self.check_program_exist(converted_to_yaml_dict['check_presence_command']))
+                print(self.check_program_exist(converted_to_yaml_dict['check_presence_path']))
 
-                if self.check_program_exist(converted_to_yaml_dict['check_presence_command']) == 1:
+                if self.check_program_exist(converted_to_yaml_dict['check_presence_path']) == 1:
                     cursor.execute("""UPDATE ProgramManager3000 SET installed=? WHERE id=?""", (1,converted_to_yaml_dict['id']))
                     sqlite_connection.commit()
+                    status_icon = Image(source=green_dot_path, size_hint_x = 0.05) 
                 else:
                     cursor.execute("""UPDATE ProgramManager3000 SET installed=? WHERE id=?""", (0,converted_to_yaml_dict['id']))
                     sqlite_connection.commit()
-                                
-                textinput = Label(font_size = '15sp', size_hint_x = 0.8, text = converted_to_yaml, text_size = (1000, None))
-                checkbox = CheckBox(size_hint_x = 0.1)
-                button_in_box_layout = BoxLayout(orientation = 'vertical', size_hint_x = 0.1)
+                    status_icon = Image(source=red_dot_path, size_hint_x = 0.05)              
+                textinput = Label(font_size = '15sp', size_hint_x = 0.75, text = converted_to_yaml, text_size = (1000, None))
+                checkbox = CheckBox(size_hint_x = 0.05, color = [86, 230, 59, 0.8])
+                button_in_box_layout = BoxLayout(orientation = 'vertical', size_hint_x = 0.15, padding = [0,0,50,0])
                 button_in_box_layout.add_widget(Label(text = ''))
                 button_in_box_layout.add_widget(Button(text = 'Edit row!', on_press = partial(self.edit_row, row_id = rid)))
                 button_in_box_layout.add_widget(Label(text = ''))
 
-
+                self.all_icons.append(status_icon)
                 self.all_textinputs.append(textinput)
                 self.all_checkboxes.append(checkbox)
                 self.all_buttons.append(button_in_box_layout)
 
+                self.ids.search_result_id.add_widget(status_icon)
                 self.ids.search_result_id.add_widget(textinput)
                 self.ids.search_result_id.add_widget(checkbox)
                 self.ids.search_result_id.add_widget(button_in_box_layout)
@@ -272,7 +283,7 @@ class MainScreen(Screen):
         except sqlite3.Error as error:
             print('Error during database communication. ', error)
 
-class SettingsScreen(Screen):
+class HistoryScreen(Screen):
     pass
 
 
@@ -281,12 +292,14 @@ class TestApp(App):
 
     def build(self):
         # Create the screen manager
+        self.title = 'ProgramManager3000'
         sm = ScreenManager()
         sm.add_widget(MainScreen(name='main'))
-        sm.add_widget(SettingsScreen(name='settings'))
+        #sm.add_widget(HistoryScreen(name='history'))
 
         return sm
 
 if __name__ == '__main__':
+    print(red_dot_path)
     TestApp().run()
     
