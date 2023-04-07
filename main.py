@@ -191,6 +191,9 @@ class MainScreen(Screen):
         except InvalidURLException as error:
                 error_popup = Popup(size_hint=(None, None), size=(800, 400), title = 'Error', content = Label(text = "Operation failed. Something is wrong with URL"))
                 error_popup.open()
+        except requests.exceptions.ConnectionError as error:
+                error_popup = Popup(size_hint=(None, None), size=(800, 400), title = 'Error', content = Label(text = "Operation failed. Something is wrong with URL"))
+                error_popup.open()  
 
 
     def edit_row(self, *args, **kwargs):
