@@ -1,7 +1,7 @@
 
 # ProgramManager3000
 
-Program`s main purpose is to allow users to create their own program repository.
+Program`s main purpose is to allow users to create their own program repository. Program works on Windows OS only. 
 
 
 ## Tech Stack
@@ -11,6 +11,14 @@ Program`s main purpose is to allow users to create their own program repository.
 **Frameworks and modules:** kivy, sqlite3, yaml, requests, os
 
 **Database:** SQLite
+
+## Features
+
+- Install any .exe or .msi program with a silent install command you find in google
+- Create your own program repository to install a bunch of programs with just a single click
+- Created with kivy framework and sqlite database
+- Fullscreen mode
+
 
 ## Screenshots
 
