@@ -21,12 +21,15 @@ import requests
 import os
 
 Window.size = (1500, 600)
+Window.minimum_width, Window.minimum_height = Window.size
 
 dirname = os.path.dirname(__file__)
 red_dot_path = os.path.join(dirname, 'images\\red_dot.png')
 green_dot_path = os.path.join(dirname, 'images\\green_dot.png')
 database_path = os.path.join(dirname, 'programs.db')
 downloads_path = os.path.join(dirname, 'downloads\\')
+if os.path.isdir(downloads_path) != True:
+    os.mkdir(downloads_path)
 
 
 class InvalidIdValueException(Exception):
